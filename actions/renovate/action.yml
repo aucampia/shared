@@ -1,0 +1,79 @@
+name: Renovate
+description: >-
+  Run self-hosted Renovate against a repository, using aucampia's default
+  policy unless the repository ships its own renovate-global.json5.
+inputs:
+  workspace:
+    description: Path to the checked-out repository to renovate.
+    required: false
+    default: ${{ github.workspace }}
+  repositories:
+    description: Repository slug(s) for Renovate to process.
+    required: false
+    default: ${{ github.repository }}
+  config-file:
+    description: >-
+      Absolute path to a global config file to use verbatim, skipping
+      auto-resolution of workspace/renovate-global.json5 vs the default.
+    required: false
+    default: ""
+  repo-cache:
+    description: enabled | disabled | reset
+    required: false
+    default: enabled
+  log-level:
+    description: debug | info
+    required: false
+    default: info
+  auto-approve:
+    description: "true | false - approve every PR Renovate opens or updates."
+    required: false
+    default: "false"
+  dry-run:
+    description: disabled | full | lookup | extract
+    required: false
+    default: disabled
+  cache-archive:
+    description: Local path to import/export the repository cache through.
+    required: false
+    default: /tmp/renovate-cache.tar.gz
+  report-file:
+    description: Local path the run's report.json is copied to.
+    required: false
+    default: /tmp/renovate-report.json
+  renovate-token:
+    description: Renovate's GitHub platform token.
+    required: true
+  github-actions-token:
+    description: >-
+      Token used by postprocess.sh to approve PRs. Defaults to the job's
+      GITHUB_TOKEN.
+    required: false
+    default: ""
+outputs:
+  report-file:
+    description: Path to the exported report.json.
+    value: ${{ inputs.report-file }}
+  cache-archive:
+    description: Path to the exported repository cache archive.
+    value: ${{ inputs.cache-archive }}
+runs:
+  using: composite
+  steps:
+    - name: Run Renovate
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: exec ./run.sh
+      env:
+        RENOVATE_WORKSPACE: ${{ inputs.workspace }}
+        RENOVATE_REPOSITORIES: ${{ inputs.repositories }}
+        RENOVATE_CONFIG_FILE_OVERRIDE: ${{ inputs.config-file }}
+        RENOVATE_REPOSITORY_CACHE: ${{ inputs.repo-cache }}
+        RENOVATE_LOG_LEVEL: ${{ inputs.log-level }}
+        RENOVATE_AUTO_APPROVE: ${{ inputs.auto-approve }}
+        RENOVATE_DRY_RUN: ${{ inputs.dry-run }}
+        RENOVATE_CACHE_ARCHIVE: ${{ inputs.cache-archive }}
+        RENOVATE_REPORT_FILE: ${{ inputs.report-file }}
+        RENOVATE_TOKEN: ${{ inputs.renovate-token }}
+        RENOVATE_GITHUB_ACTIONS_TOKEN: ${{ inputs.github-actions-token }}
+        GITHUB_TOKEN: ${{ github.token }}

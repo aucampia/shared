@@ -1,0 +1,11 @@
+[settings]
+lockfile = true
+
+[tools]
+task = "3.53.1"
+yamlfmt = "0.21.0"
+shfmt = "3.13.1"
+shellcheck = "0.11.0"
+rumdl = "v0.2.60"
+zizmor = "1.29.0"
+actionlint = "1.7.12"

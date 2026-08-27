@@ -1,0 +1,31 @@
+# https://docs.docker.com/reference/compose-file/
+# https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/
+#
+# Relative host paths below resolve against this file's own directory (the
+# "project directory"), not the caller's working directory - so `.` is
+# always this action's own actions/renovate/, wherever it was checked out.
+# run.sh always passes --project-name explicitly, so the cache volume below
+# has a stable name across runs regardless of that checkout path.
+services:
+  renovate:
+    image: docker.io/renovate/renovate:latest@sha256:ca8f004c8a0981c21fb7806404973596b65bae42ee0d4ba335a81bccc1934665
+    restart: "no"
+    environment:
+      # https://docs.renovatebot.com/config-overview/#logging-variables
+      RENOVATE_TOKEN: ${RENOVATE_TOKEN}
+      RENOVATE_GITHUB_ACTIONS_TOKEN: ${RENOVATE_GITHUB_ACTIONS_TOKEN}
+      RENOVATE_REPOSITORIES: ${RENOVATE_REPOSITORIES}
+      RENOVATE_CONFIG_FILE: ${RENOVATE_CONFIG_FILE:-/srv/action/renovate-global.json5}
+      RENOVATE_REPOSITORY_CACHE: ${RENOVATE_REPOSITORY_CACHE:-enabled}
+      RENOVATE_AUTO_APPROVE: ${RENOVATE_AUTO_APPROVE:-false}
+      LOG_LEVEL: ${RENOVATE_LOG_LEVEL:-info}
+      RENOVATE_DRY_RUN: ${RENOVATE_DRY_RUN:-}
+    volumes:
+      - .:/srv/action:ro
+      - ${RENOVATE_WORKSPACE:?RENOVATE_WORKSPACE must be set}:/srv/workspace
+      - renovate-tmp:/tmp/renovate
+    # Bypasses the image's own entrypoint, replaced with entrypoint.sh (a
+    # sibling in this same directory, so also visible at /srv/action).
+    entrypoint: ["bash", "/srv/action/entrypoint.sh"]
+volumes:
+  renovate-tmp: {}

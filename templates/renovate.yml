@@ -1,0 +1,82 @@
+# Copy this file to .github/workflows/renovate.yml in a consumer repository
+# to adopt aucampia/shared's Renovate setup. Requires a RENOVATE_TOKEN
+# Actions secret on this repository (or an account-wide Codespaces secret
+# for local runs) - see aucampia/shared's README.md "Token handling".
+#
+# The repository is picked up via inputs.repositories default
+# (`${{ github.repository }}`, resolved inside the composite action) - no
+# per-repo edits needed below. If this repository has its own
+# renovate-global.json5 at its root, that is used instead of shared's
+# default; see aucampia/shared's README.md "Config resolution".
+name: renovate
+
+on:
+  workflow_dispatch:
+    inputs:
+      repoCache:
+        description: 'Reset or disable the cache?'
+        type: choice
+        default: enabled
+        options:
+          - enabled
+          - disabled
+          - reset
+      logLevel:
+        description: 'Log level'
+        type: choice
+        default: info
+        options:
+          - debug
+          - info
+      autoApprove:
+        description: 'Automatically approve Renovate PRs?'
+        type: choice
+        default: "true"
+        options:
+          - "true"
+          - "false"
+      # Lets this workflow be dispatched against a branch to test a
+      # renovate-global.json5 or workflow change before merging it, without
+      # touching any branch, PR or comment.
+      dryRun:
+        description: 'Dry-run mode (no branches, PRs or comments)'
+        type: choice
+        default: disabled
+        options:
+          - disabled
+          - full
+          - lookup
+          - extract
+      sharedRef:
+        description: >-
+          Ref of aucampia/shared to pull the renovate action from. Only
+          worth overriding to test an unmerged branch of aucampia/shared
+          before it merges.
+        type: string
+        default: ""
+  schedule:
+    - cron: 0 10 * * *
+
+concurrency:
+  group: >
+    ${{ github.repository }}-
+    ${{ github.workflow }}-
+    ${{ github.ref }}-
+    ${{ contains(fromJSON('["refs/heads/master", "refs/heads/main"]'), github.ref) && format( '{0}-{1}', github.run_id, github.sha ) || '' }}
+  cancel-in-progress: true
+
+jobs:
+  renovate:
+    uses: aucampia/shared/.github/workflows/renovate-reusable.yml@main
+    permissions:
+      contents: read # checkout
+      pull-requests: write # postprocess.sh approves PRs
+      actions: read # dawidd6/action-download-artifact reads prior runs
+    with:
+      repo-cache: ${{ inputs.repoCache || 'enabled' }}
+      log-level: ${{ inputs.logLevel || 'info' }}
+      auto-approve: ${{ inputs.autoApprove || 'true' }}
+      dry-run: ${{ inputs.dryRun || 'disabled' }}
+      shared-ref: ${{ inputs.sharedRef || '' }}
+    secrets:
+      RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}

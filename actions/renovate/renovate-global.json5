@@ -1,0 +1,36 @@
+{
+    // https://docs.renovatebot.com/self-hosted-experimental/
+    // https://docs.renovatebot.com/self-hosted-configuration/
+    // Default self-hosted global config for the Renovate composite action.
+    // A consumer repository that has its own renovate-global.json5 at its
+    // workspace root gets that one instead - see actions/renovate/run.sh.
+    "$schema": "https://docs.renovatebot.com/renovate-global-schema.json",
+    "platform": "github",
+    "repositoryCache": "enabled",
+    // The repository-config layer (labels, automerge, enabledManagers, ...)
+    // lives in the "default" preset (github>aucampia/shared) at the root of
+    // this repository, applied via `globalExtends` below rather than
+    // `extends`: this file has no `repositories` array (the action sets
+    // RENOVATE_REPOSITORIES per run instead, to the one repository the
+    // caller is processing), and `extends` only resolves inside a
+    // `repositories[]` entry or a repo's own config - `globalExtends` is the
+    // self-hosted equivalent that applies before that per-repo resolution.
+    "requireConfig": "optional",
+    "onboarding": false,
+    "globalExtends": [
+        "github>aucampia/shared",
+    ],
+    "allowedCommands": [
+        ".*",
+    ],
+    // `allowedUnsafeExecutions` is deliberately unset. Refreshing mise.lock
+    // means running `mise lock`, which can run repository-defined behaviour.
+    // While mise is not allowlisted Renovate runs it with `MISE_SAFE=1` and
+    // without `mise trust`, which is a hard boundary against that; allowlisting
+    // "mise" takes the trust-then-lock path instead. Needs mise >= 2026.7.12,
+    // below which Renovate blocks mise entirely rather than running it unsafe.
+    // postprocess.sh reads this report to find the PRs it has to approve, and
+    // the composite action exposes it as the report-file output/artifact.
+    "reportPath": "/tmp/renovate/report.json",
+    "reportType": "file",
+}

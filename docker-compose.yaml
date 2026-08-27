@@ -1,0 +1,25 @@
+# https://docs.docker.com/reference/compose-file/
+# https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/
+services:
+  devtools:
+    image: ghcr.io/jdx/mise:2026.8.12@sha256:0b65495ca65878cd93e6cdd47d9cbad6806a43416b768eeffbfc734ba034c7d2
+    entrypoint: ["mise", "exec", "--"]
+    restart: "no"
+    profiles:
+      - devtools
+    working_dir: /srv/workspace
+    environment:
+      # Passed through from the host/CI shell if set - mise needs it for
+      # GitHub API calls (tool version resolution) or it quickly hits the
+      # unauthenticated rate limit.
+      - GITHUB_TOKEN
+      - VALIDATE_PARALLEL
+      - MISE_TRUSTED_CONFIG_PATHS=/srv/workspace
+      - XDG_CACHE_HOME=/srv/__devtools/cache
+      - MISE_DATA_DIR=/srv/__devtools/cache/mise/data
+      - MISE_CACHE_DIR=/srv/__devtools/cache/mise/cache
+    volumes:
+      - .:/srv/workspace:z
+      - ${__DEVTOOLS_CACHE_DIR:-devtools-cache}:/srv/__devtools/cache
+volumes:
+  devtools-cache: {}

@@ -1,0 +1,67 @@
+# Dogfoods renovate-reusable.yml (the workflow_call definition) against this
+# repository itself - functionally identical to templates/renovate.yml, the
+# caller other repos copy in as their own renovate.yml, except this one
+# always calls the *local* renovate-reusable.yml (`uses: ./...`), so a
+# branch here is exercised by its own in-progress changes rather than by
+# whatever last shipped on main.
+name: renovate
+
+on:
+  workflow_dispatch:
+    inputs:
+      repoCache:
+        description: 'Reset or disable the cache?'
+        type: choice
+        default: enabled
+        options:
+          - enabled
+          - disabled
+          - reset
+      logLevel:
+        description: 'Log level'
+        type: choice
+        default: info
+        options:
+          - debug
+          - info
+      autoApprove:
+        description: 'Automatically approve Renovate PRs?'
+        type: choice
+        default: "true"
+        options:
+          - "true"
+          - "false"
+      dryRun:
+        description: 'Dry-run mode (no branches, PRs or comments)'
+        type: choice
+        default: disabled
+        options:
+          - disabled
+          - full
+          - lookup
+          - extract
+  schedule:
+    - cron: 0 10 * * *
+
+concurrency:
+  group: >
+    ${{ github.repository }}-
+    ${{ github.workflow }}-
+    ${{ github.ref }}-
+    ${{ contains(fromJSON('["refs/heads/master", "refs/heads/main"]'), github.ref) && format( '{0}-{1}', github.run_id, github.sha ) || '' }}
+  cancel-in-progress: true
+
+jobs:
+  renovate:
+    uses: ./.github/workflows/renovate-reusable.yml
+    permissions:
+      contents: read # checkout
+      pull-requests: write # postprocess.sh approves PRs
+      actions: read # dawidd6/action-download-artifact reads prior runs
+    with:
+      repo-cache: ${{ inputs.repoCache || 'enabled' }}
+      log-level: ${{ inputs.logLevel || 'info' }}
+      auto-approve: ${{ inputs.autoApprove || 'true' }}
+      dry-run: ${{ inputs.dryRun || 'disabled' }}
+    secrets:
+      RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}

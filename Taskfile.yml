@@ -1,0 +1,321 @@
+# https://taskfile.dev/usage/
+# https://pkg.go.dev/text/template
+# https://go-task.github.io/slim-sprig/
+version: "3"
+set: [errexit, nounset, pipefail]
+env:
+  RENOVATE_CACHE_ARCHIVE: '{{.RENOVATE_CACHE_ARCHIVE | default "/tmp/renovate-cache.tar.gz"}}'
+  RENOVATE_REPORT_FILE: '{{.RENOVATE_REPORT_FILE | default "/tmp/renovate-report.json"}}'
+vars:
+  # "." rather than an explicit file list: .yamlfmt.yaml already excludes the
+  # noise.
+  YAML_SOURCE: "."
+  # `|| true` so the Taskfile still parses outside a git work tree.
+  SH_FILES:
+    sh: git -c safe.directory='*' ls-files -- '*.sh' 2>/dev/null || true
+  MD_FILES:
+    sh: git -c safe.directory='*' ls-files -- '*.md' 2>/dev/null || true
+  # Explicit file list rather than letting actionlint/zizmor discover
+  # workflows: tracked files only, so untracked local scratch workflows do
+  # not fail validation.
+  WORKFLOW_FILES:
+    sh: git -c safe.directory='*' ls-files -- '.github/workflows/*.yml' '.github/workflows/*.yaml' 2>/dev/null || true
+  YAMLFMT: "mise exec -- yamlfmt"
+  SHFMT: "mise exec -- shfmt"
+  RUMDL: "mise exec -- rumdl"
+  # env -u: zizmor requires GH_TOKEN/GITHUB_TOKEN/ZIZMOR_GITHUB_TOKEN to be
+  # either unset or non-empty - an empty-but-set value errors outright, even
+  # with --offline (which never uses it). --offline never needs a token, so
+  # the three are unset unconditionally rather than only when empty.
+  ZIZMOR: >-
+    env -u GH_TOKEN -u GITHUB_TOKEN -u ZIZMOR_GITHUB_TOKEN mise exec -- zizmor --persona pedantic --min-severity informational --min-confidence high --offline
+  VALIDATE_PARALLEL: '{{.VALIDATE_PARALLEL | default "false"}}'
+tasks:
+  configure:
+    desc: Configure this project
+    cmds:
+      - "mise install"
+  yamlfmt:
+    desc: Check YAML formatting
+    cmds:
+      - "{{.YAMLFMT}} -lint {{.CLI_ARGS | default .YAML_SOURCE}}"
+  yamlfmt:fix:
+    desc: Format YAML
+    cmds:
+      - "{{.YAMLFMT}} {{.CLI_ARGS | default .YAML_SOURCE}}"
+  shfmt:
+    desc: Check shell script formatting
+    status:
+      - '[ -z "{{.SH_FILES | trim}}" ]'
+    cmds:
+      - "{{.SHFMT}} -l -d {{.SH_FILES | catLines}}"
+  shfmt:fix:
+    desc: Format shell scripts
+    status:
+      - '[ -z "{{.SH_FILES | trim}}" ]'
+    cmds:
+      - "{{.SHFMT}} -w {{.SH_FILES | catLines}}"
+  shellcheck:
+    desc: Run shellcheck
+    status:
+      - '[ -z "{{.SH_FILES | trim}}" ]'
+    cmds:
+      - "mise exec -- shellcheck {{.SH_FILES | catLines}}"
+  rumdl:check:
+    desc: Run rumdl markdown linter
+    status:
+      - '[ -z "{{.MD_FILES | trim}}" ]'
+    cmds:
+      - "{{.RUMDL}} check {{.MD_FILES | catLines}}"
+  rumdl:check:fix:
+    desc: Run rumdl markdown linter with autofix
+    status:
+      - '[ -z "{{.MD_FILES | trim}}" ]'
+    cmds:
+      - "{{.RUMDL}} check --fix {{.MD_FILES | catLines}}"
+  rumdl:format:check:
+    desc: Check markdown formatting with rumdl
+    status:
+      - '[ -z "{{.MD_FILES | trim}}" ]'
+    cmds:
+      - "{{.RUMDL}} fmt --check {{.MD_FILES | catLines}}"
+  rumdl:format:fix:
+    desc: Format markdown with rumdl
+    status:
+      - '[ -z "{{.MD_FILES | trim}}" ]'
+    cmds:
+      - "{{.RUMDL}} fmt {{.MD_FILES | catLines}}"
+  zizmor:
+    desc: Run zizmor (GitHub Actions security linter)
+    status:
+      - '[ -z "{{.WORKFLOW_FILES | trim}}" ]'
+    cmds:
+      - "{{.ZIZMOR}} {{.WORKFLOW_FILES | catLines}}"
+  zizmor:fix:
+    desc: Run zizmor with autofix
+    status:
+      - '[ -z "{{.WORKFLOW_FILES | trim}}" ]'
+    cmds:
+      - "{{.ZIZMOR}} --fix {{.WORKFLOW_FILES | catLines}}"
+  actionlint:
+    desc: Run actionlint (GitHub Actions workflow linter)
+    status:
+      - '[ -z "{{.WORKFLOW_FILES | trim}}" ]'
+    cmds:
+      - "mise exec -- actionlint {{.CLI_ARGS | default (.WORKFLOW_FILES | catLines)}}"
+  validate:static:
+    desc: Perform static validation
+    vars:
+      STATIC_CHECKS: >-
+        yamlfmt shfmt shellcheck rumdl:format:check rumdl:check zizmor actionlint renovate:config:validate
+      # Exactly one of these is non-empty. An empty `for` var expands to zero
+      # iterations, so the unused branch disappears entirely.
+      STATIC_DEPS: '{{if (mustFromJson .VALIDATE_PARALLEL)}}{{.STATIC_CHECKS}}{{end}}'
+      STATIC_CMDS: '{{if (mustFromJson .VALIDATE_PARALLEL)}}{{else}}{{.STATIC_CHECKS}}{{end}}'
+    deps:
+      - for: {var: STATIC_DEPS}
+        task: "{{.ITEM}}"
+    cmds:
+      - for: {var: STATIC_CMDS}
+        task: "{{.ITEM}}"
+  validate:fix:
+    desc: Fix auto-fixable validation errors.
+    # Always sequential - fixer order matters (rumdl:format:fix before
+    # rumdl:check:fix).
+    vars:
+      STATIC_FIXES: >-
+        yamlfmt:fix shfmt:fix rumdl:format:fix rumdl:check:fix zizmor:fix
+    cmds:
+      - for: {var: STATIC_FIXES}
+        task: "{{.ITEM}}"
+  validate:
+    desc: Perform all validation
+    cmds:
+      - task: validate:static
+  fix-and-validate:
+    desc: Fix auto-fixable issues, then perform all validation
+    cmds:
+      - task: validate:fix
+      - task: validate
+  default:
+    desc: Run validate
+    cmds:
+      - task: validate
+  renovate:
+    desc: Run Renovate against a workspace
+    summary: |
+      Run Renovate against RENOVATE_WORKSPACE (default: this repository, so
+      "shared" dogfoods its own action). Point it at another checkout to
+      renovate that repository instead, e.g.:
+
+        RENOVATE_WORKSPACE=~/code/aucampia/signalsmith task renovate
+
+      This is the exact code path CI runs, via actions/renovate/run.sh.
+    env:
+      RENOVATE_WORKSPACE: '{{.RENOVATE_WORKSPACE | default "."}}'
+    cmds:
+      - ./actions/renovate/run.sh
+  renovate:dry-run:
+    desc: Dry-run Renovate against a workspace using your own gh token
+    cmds:
+      - |
+        RENOVATE_TOKEN="$(gh auth token)" RENOVATE_DRY_RUN=full RENOVATE_LOG_LEVEL=debug \
+        task renovate 2>&1 |
+        tee renovate-output.log
+  renovate:config:validate:
+    desc: Validate the default Renovate configs
+    summary: |
+      Validate the self-hosted global config with renovate-config-validator
+      --strict, out of the same image the renovate service uses. Its
+      `globalExtends: ["github>aucampia/shared"]` makes this also resolve
+      and validate default.json (the repo-config preset) as it is published
+      on GitHub right now - not the working tree's copy, so a local edit to
+      default.json only shows up here after it is pushed.
+    cmds:
+      - |
+        set -euo pipefail
+        RENOVATE_TOKEN="" RENOVATE_GITHUB_ACTIONS_TOKEN="" RENOVATE_REPOSITORIES="" \
+          docker compose -f actions/renovate/docker-compose.yaml --project-name renovate-shared \
+          run --entrypoint="" --quiet-build --quiet-pull -T --rm renovate \
+          renovate-config-validator --strict /srv/action/renovate-global.json5
+    vars:
+      RENOVATE_WORKSPACE:
+        sh: pwd
+    env:
+      RENOVATE_WORKSPACE: "{{.RENOVATE_WORKSPACE}}"
+  renovate:gha:run:
+    desc: Run the renovate workflow against the current branch, for a given repo
+    summary: |
+      Dispatch REPO's .github/workflows/renovate.yml against the current
+      branch of *this* (shared) repository, so an action/workflow change can
+      be exercised for real before it is merged.
+
+      Defaults to a full dry run against "shared" itself - no branches, PRs
+      or comments. Override REPO=aucampia/<other-repo> to test against a
+      consumer, and RENOVATE_GHA_DRY_RUN=disabled for a real run.
+
+      The consumer's workflow checks out `shared` at inputs.shared-ref (see
+      templates/renovate.yml), so this only exercises a branch of `shared`
+      if the consumer's own renovate.yml passes that input through.
+    env:
+      REPO: '{{.REPO | default "aucampia/shared"}}'
+      REF:
+        sh: git branch --show-current
+    vars:
+      GHA_DRY_RUN: '{{.RENOVATE_GHA_DRY_RUN | default "full"}}'
+      GHA_LOG_LEVEL: '{{.RENOVATE_GHA_LOG_LEVEL | default "debug"}}'
+      REPORT_DIR: '{{.RENOVATE_REPORT_DIR | default "/tmp/renovate-gha-report"}}'
+    cmds:
+      - |
+        set -euo pipefail
+
+        declare -p REF REPO >&2
+
+        # `gh workflow run` does not report the run it created, so remember the
+        # newest run on this branch and wait for a different one to show up.
+        LAST_RUN_ID="$(gh run list --repo "${REPO}" --workflow renovate.yml --branch "${REF}" --limit 1 --json databaseId --jq '.[0].databaseId // ""')"
+
+        gh workflow run renovate.yml --repo "${REPO}" --ref "${REF}" \
+          --field "dryRun={{.GHA_DRY_RUN}}" \
+          --field "logLevel={{.GHA_LOG_LEVEL}}" \
+          --field autoApprove=false
+
+        RUN_ID="${LAST_RUN_ID}"
+        while [ "${RUN_ID}" == "${LAST_RUN_ID}" ]; do
+          sleep 4
+          echo "Waiting for the renovate run on ${REF} to start..." >&2
+          RUN_ID="$(gh run list --repo "${REPO}" --workflow renovate.yml --branch "${REF}" --limit 1 --json databaseId --jq '.[0].databaseId // ""')"
+        done
+        declare -p RUN_ID >&2
+
+        WATCH_STATUS=0
+        gh run watch --repo "${REPO}" --exit-status "${RUN_ID}" || WATCH_STATUS="${?}"
+
+        mkdir -p {{.REPORT_DIR | q}}
+        if gh run download --repo "${REPO}" "${RUN_ID}" -n renovate-report --dir {{.REPORT_DIR | q}}; then
+          echo "Renovate report downloaded to {{.REPORT_DIR}}" >&2
+        else
+          echo "No renovate-report artifact on run ${RUN_ID}" >&2
+        fi
+
+        exit "${WATCH_STATUS}"
+  renovate:env:run:
+    desc: Extract Renovate secrets for a local run, for a given repo
+    env:
+      REPO: '{{.REPO | default "aucampia/shared"}}'
+      TMP_DIR:
+        sh: |
+          set -euo pipefail;
+          mktemp -d -t renovate-env-XXXXXXXXXX
+    cmds:
+      - defer: |
+          if [ -e "${TMP_DIR}/run_id" ]; then
+            RUN_ID="$(cat "${TMP_DIR}/run_id")"
+            echo "Canceling Renovate run ${RUN_ID}..." >&2
+            gh run cancel --repo "${REPO}" "${RUN_ID}" || true
+          fi
+
+          echo "Removing all the temp files";
+          rm -vfr "${TMP_DIR}"
+      - |
+        set -euo pipefail
+
+        gh workflow run renovate-env.yml --repo "${REPO}" --field lifetime=600 --field "gpg_public_key=$(gpg --armor --export)" --ref main
+        RUN_ID=""
+        while [ -z "${RUN_ID}" ]; do
+          sleep 4
+          echo "Waiting for Renovate run to start..."
+          RUN_ID="$(gh run list --repo "${REPO}" --workflow renovate-env.yml --branch main --status=in_progress --json 'number,databaseId' --jq '[sort_by(.number) | reverse][0][0].databaseId')"
+        done
+        echo "RUN_ID=${RUN_ID@Q}" >&2
+        echo "${RUN_ID}" > "${TMP_DIR}/run_id"
+      - |
+        set -euo pipefail
+        gh run download --repo "${REPO}" "${RUN_ID}" -n renovate-env --dir "${TMP_DIR}"
+        gpg --decrypt "${TMP_DIR}/renovate-env.asc" > "${TMP_DIR}/renovate-env.sh"
+        # shellcheck disable=SC1091
+        source "${TMP_DIR}/renovate-env.sh"
+        export RENOVATE_TOKEN RENOVATE_GITHUB_ACTIONS_TOKEN
+        exec {{.CLI_ARGS}}
+  renovate:update-token:
+    desc: Mint a fine-grained Renovate PAT and store it as a secret
+    summary: |
+      Prints a pre-filled fine-grained-PAT creation URL, reads the PAT from
+      stdin, and stores it as REPO's Actions secret (default: this repo).
+      Pass TARGET=codespaces to store it as your account-wide Codespaces
+      secret instead, so `task renovate` picks it up in any Codespace with
+      no per-repo setup.
+    vars:
+      TARGET: '{{.TARGET | default "actions"}}'
+      REPO: '{{.REPO | default "aucampia/shared"}}'
+      PAT_URL: "https://github.com/settings/personal-access-tokens/new?name={{print \"Renovate - \" .REPO | urlquery}}&description={{print \"Token used by Renovate for \" .REPO | urlquery}}&target_name=aucampia&expires_in=356&members=read&statuses=write&contents=write&vulnerability_alerts=read&issues=write&pull_requests=write&workflows=write"
+    cmds:
+      - cmd: |
+          cat <<'EOF'
+          Generate a PAT with the following permissions and paste it here.
+          - Contents: Read and write (Level: Repository or Organization)
+          - Issues: Read and write (Level: Repository or Organization)
+          - Pull requests: Read and write (Level: Repository or Organization)
+          - Commit statuses: Read and write (Level: Repository or Organization)
+          - Dependabot alerts: Read-only (Level: Repository or Organization)
+          - Members: Read-only (Level: Organization)
+          - Workflows: Read and write (Level: Repository or Organization)
+
+          For "Repository access", select "Only select repositories" and
+          add every repository this token needs to renovate.
+
+          ⚠️ Make sure to delete any old tokens after generating a new token ⚠️
+
+          The following URL should take you to a page with most
+          parameters except "Repository access" pre-filled:
+          {{.PAT_URL}}
+          EOF
+        silent: true
+      - |
+        echo "Paste your PAT here:"
+        read -r RENOVATE_TOKEN
+        {{if eq .TARGET "codespaces"}}
+        gh secret set RENOVATE_TOKEN --user --app codespaces <<< "${RENOVATE_TOKEN}"
+        {{else}}
+        gh secret set RENOVATE_TOKEN --repo {{.REPO}} <<< "${RENOVATE_TOKEN}"
+        {{end}}

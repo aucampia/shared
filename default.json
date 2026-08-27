@@ -1,0 +1,40 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", "security:minimumReleaseAgePypi"],
+  "labels": ["dependencies"],
+  "vulnerabilityAlerts": {
+    "enabled": true
+  },
+  "pinDigests": true,
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboardOSVVulnerabilitySummary": "unresolved",
+  "prConcurrentLimit": 5,
+  "enabledManagers": [
+    "pep621",
+    "github-actions",
+    "docker-compose",
+    "dockerfile",
+    "mise",
+    "gomod",
+    "terraform",
+    "npm",
+    "nvm"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* * * * *"]
+  },
+  "automerge": true,
+  "automergeStrategy": "squash",
+  "platformAutomerge": true,
+  "rebaseWhen": "conflicted",
+  "statusCheckWhen": {
+    "artifactError": "always"
+  },
+  "packageRules": [
+    {
+      "matchManagers": ["pep621"],
+      "rangeStrategy": "replace"
+    }
+  ]
+}

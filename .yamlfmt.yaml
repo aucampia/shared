@@ -1,0 +1,10 @@
+# Honour .gitignore so generated example projects' .venv/.cache trees are not
+# walked; `exclude` below covers the paths git does not ignore.
+gitignore_excludes: true
+exclude:
+  - .venv
+  - .cache
+formatter:
+  type: basic
+  retain_line_breaks: true
+  scan_folded_as_literal: true

@@ -1,0 +1,61 @@
+name: Validate
+on:
+  workflow_dispatch: {}
+  pull_request:
+    branches:
+      - main
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+env:
+  __DEVTOOLS_CACHE_DIR: ${{ github.workspace }}/.cache/devtools
+jobs:
+  validate:
+    name: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Cache devtools state (tools, lint caches)
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.__DEVTOOLS_CACHE_DIR }}
+          # restore-keys only match as a literal prefix of a saved key, so
+          # the key is built from one hashFiles() call per file (not one
+          # hashFiles() over several files, which produces a single opaque
+          # hash no prefix can partially match).
+          key: devtools-${{ github.job }}-v1-${{ hashFiles('.mise.toml') }}-${{ hashFiles('mise.lock') }}
+          restore-keys: |
+            devtools-${{ github.job }}-v1-${{ hashFiles('.mise.toml') }}-
+            devtools-${{ github.job }}-v1-
+      - name: Install mise
+        # Only the mise binary - the tools it manages are installed by
+        # `task configure` (`mise install`) into the cached data dir below.
+        # CI runs mise directly on the runner rather than through the
+        # docker-compose `devtools` service: same pinned toolchain either way,
+        # and the container is one less moving part here. The
+        # renovate:config:validate task (part of `task validate`) still needs
+        # the runner's own Docker daemon, which ubuntu-latest ships already.
+        uses: jdx/mise-action@3c2e0cf82a5b2e5249f0d3635a4d83d0ae861518 # v4.2.5
+        with:
+          install: false
+          cache: false
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+      - name: Run validation
+        run: |
+          set -x -Eeuo pipefail
+          mise exec -- task --output group \
+            --output-group-begin '::group::{{.TASK}}' \
+            --output-group-end '::endgroup::' \
+            configure validate
+        env:
+          # mise needs this for GitHub API calls (tool version resolution) or
+          # it hits the unauthenticated rate limit almost immediately.
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          MISE_DATA_DIR: ${{ env.__DEVTOOLS_CACHE_DIR }}/mise/data
+          MISE_CACHE_DIR: ${{ env.__DEVTOOLS_CACHE_DIR }}/mise/cache
+          VALIDATE_PARALLEL: "true"
