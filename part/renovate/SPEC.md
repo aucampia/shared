@@ -38,6 +38,26 @@ entry point both CI and local runs go through:
 6. Back in `v1/action/action.yml`, once `run.sh` returns, it exports the
    cache and uploads the report as GitHub Actions artifacts (CI only).
 
+## Token roles
+
+Creation and approval deliberately use different tokens:
+
+- **`RENOVATE_TOKEN`** (a personal fine-grained PAT - see `README.md`
+  "Token handling") is Renovate's platform token, so it authors every
+  commit, branch push and PR. It has to be a PAT rather than the job's
+  `GITHUB_TOKEN` because GitHub Actions never triggers other workflows from
+  a push or PR made with the default `GITHUB_TOKEN` (an anti-recursion
+  guard). If Renovate opened PRs with `GITHUB_TOKEN`, checks triggered by a
+  `pull_request` event - like this repository's own `validate` workflow -
+  would never run, so a ruleset requiring that status check could never be
+  satisfied and `platformAutomerge` would stall on every PR, silently and
+  permanently.
+- **`RENOVATE_GITHUB_ACTIONS_TOKEN`** (defaults to the job's `GITHUB_TOKEN`)
+  is what `postprocess.sh` uses to approve PRs. Approving is a REST call,
+  not a push or a PR creation, so it never trips the anti-recursion guard -
+  `GITHUB_TOKEN` works fine there, and using it instead of the PAT keeps the
+  PAT's reach limited to what actually needs it.
+
 ## Container mounts
 
 `v1/action/docker-compose.yaml` bind-mounts two things into the `renovate`
