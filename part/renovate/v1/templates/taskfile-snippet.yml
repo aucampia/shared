@@ -24,4 +24,4 @@ tasks:
         fi
       - |
         set -Eeuo pipefail
-        RENOVATE_WORKSPACE="$(pwd)" exec {{.SHARED_DIR}}/actions/renovate/run.sh
+        RENOVATE_WORKSPACE="$(pwd)" exec {{.SHARED_DIR}}/part/renovate/v1/run.sh

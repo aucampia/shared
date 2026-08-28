@@ -4,20 +4,24 @@ Tools:
 
 - `task` as task runner
 - `mise` pins every dev tool (see `.mise.toml` / `mise.lock`)
-- `docker compose` (`actions/renovate/docker-compose.yaml`) runs Renovate;
-  the top-level `docker-compose.yaml` is unrelated devtools tooling
 
-Other info:
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for tooling and code conventions,
+and [`SPEC.md`](SPEC.md) / [`README.md`](README.md) for what this
+repository is and how it's laid out.
 
-- Code is formatted using `yamlfmt`, `shfmt` and `rumdl`
-- Code is linted using `shellcheck`, `rumdl`, `zizmor` and `actionlint`
-- To run formatting and fix autofixable issues: `task validate:fix`
-- To run all static validation: `task validate:static` (same as `task
-  validate` here - there are no tests)
-- `task renovate:config:validate` validates the Renovate configs
-  (`actions/renovate/renovate-global.json5` and `default.json`) against a
-  real `renovate-config-validator`; it fetches `default.json` from GitHub as
-  published, not from the working tree - see the task's `summary`.
+## Commits
 
-See `README.md` for what this repository is and how the Renovate action,
-reusable workflows and preset are laid out.
+Commit proactively, without waiting to be asked, once a clearly delineated
+and scoped piece of work is done and validates cleanly (`task validate`
+passing is the bar). A plan's phase completing, a self-contained unit of
+work landing, or a specific delineated request from the user being fully
+carried out, all count. When the user is giving a run of ad hoc
+instructions with no larger plan behind them, don't treat each individual
+instruction as its own commit boundary by default - wait for a point that
+represents a coherent, reviewable change.
+
+Do not ask for permission before committing at one of these points - just
+commit. Asking defeats the point of "proactively, without waiting to be
+asked". If something about the commit itself is genuinely in question (e.g.
+whether to include a file), resolve that directly rather than turning it
+into a yes/no confirmation prompt.

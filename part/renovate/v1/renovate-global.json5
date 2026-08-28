@@ -3,22 +3,22 @@
     // https://docs.renovatebot.com/self-hosted-configuration/
     // Default self-hosted global config for the Renovate composite action.
     // A consumer repository that has its own renovate-global.json5 at its
-    // workspace root gets that one instead - see actions/renovate/run.sh.
+    // workspace root gets that one instead - see part/renovate/v1/run.sh.
     "$schema": "https://docs.renovatebot.com/renovate-global-schema.json",
     "platform": "github",
     "repositoryCache": "enabled",
     // The repository-config layer (labels, automerge, enabledManagers, ...)
-    // lives in the "default" preset (github>aucampia/shared) at the root of
-    // this repository, applied via `globalExtends` below rather than
-    // `extends`: this file has no `repositories` array (the action sets
-    // RENOVATE_REPOSITORIES per run instead, to the one repository the
-    // caller is processing), and `extends` only resolves inside a
-    // `repositories[]` entry or a repo's own config - `globalExtends` is the
-    // self-hosted equivalent that applies before that per-repo resolution.
+    // lives in the "default" preset (default.json, next to this file),
+    // applied via `globalExtends` below rather than `extends`: this file has
+    // no `repositories` array (the action sets RENOVATE_REPOSITORIES per run
+    // instead, to the one repository the caller is processing), and
+    // `extends` only resolves inside a `repositories[]` entry or a repo's
+    // own config - `globalExtends` is the self-hosted equivalent that
+    // applies before that per-repo resolution.
     "requireConfig": "optional",
     "onboarding": false,
     "globalExtends": [
-        "github>aucampia/shared",
+        "github>aucampia/shared//part/renovate/v1/default.json",
     ],
     "allowedCommands": [
         ".*",

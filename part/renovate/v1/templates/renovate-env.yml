@@ -24,7 +24,7 @@ concurrency:
 
 jobs:
   renovate-env:
-    uses: aucampia/shared/.github/workflows/renovate-env.yml@main
+    uses: aucampia/shared/.github/workflows/renovate-env-v1.yml@main
     permissions:
       pull-requests: write # exported RENOVATE_GITHUB_ACTIONS_TOKEN approves PRs locally
     with:

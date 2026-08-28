@@ -67,7 +67,7 @@ concurrency:
 
 jobs:
   renovate:
-    uses: aucampia/shared/.github/workflows/renovate-reusable.yml@main
+    uses: aucampia/shared/.github/workflows/renovate-v1.yml@main
     permissions:
       contents: read # checkout
       pull-requests: write # postprocess.sh approves PRs

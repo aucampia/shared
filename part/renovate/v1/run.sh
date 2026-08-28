@@ -74,7 +74,7 @@ export RENOVATE_REPOSITORIES
 if [ -n "${RENOVATE_CONFIG_FILE_OVERRIDE:-}" ]; then
     CONFIG_FILE_HOST="${RENOVATE_CONFIG_FILE_OVERRIDE}"
     # Documented as "absolute path inside the caller's checkout" (see
-    # config-file in action.yml / renovate-reusable.yml), so it must resolve
+    # config-file in action.yml / renovate-v1.yml), so it must resolve
     # under RENOVATE_WORKSPACE, which is what is bind-mounted into the
     # container as /srv/workspace - not /srv/action, which is this action's
     # own directory (a sibling of run.sh, unrelated to the caller's checkout).

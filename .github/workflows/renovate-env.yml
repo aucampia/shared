@@ -1,15 +1,8 @@
-# This workflow extracts the environment variables needed to run Renovate
-# manually. It remains active for {lifetime} seconds so the GitHub Action
-# token remains valid, but the task that invokes it (task renovate:env:run)
-# kills it as soon as it's done with the tokens.
-#
-# Both triggers share one `inputs:` schema (GitHub normalizes the `inputs`
-# context the same way for workflow_dispatch and workflow_call), so this file
-# is directly dispatchable in this repository - dogfooding itself, see
-# `task renovate:env:run` - and reusable from any other repository via
-# `uses: aucampia/shared/.github/workflows/renovate-env.yml@main` (see
-# templates/renovate-env.yml, the thin workflow_dispatch caller consumer
-# repos copy in).
+# Dogfoods renovate-env-v1.yml (the workflow_call definition) against this
+# repository itself - functionally identical to
+# part/renovate/v1/templates/renovate-env.yml, the caller other repos copy
+# in as their own renovate-env.yml, except this one always calls the
+# *local* renovate-env-v1.yml (`uses: ./...`).
 name: renovate-env
 
 on:
@@ -23,19 +16,6 @@ on:
         required: true
         description: 'The public key to use for GPG encryption'
         type: string
-  workflow_call:
-    inputs:
-      lifetime:
-        type: number
-        default: 120
-        description: 'How long should the tokens be valid for'
-      gpg_public_key:
-        required: true
-        type: string
-        description: 'The public key to use for GPG encryption'
-    secrets:
-      RENOVATE_TOKEN:
-        required: true
 
 concurrency:
   group: >
@@ -45,36 +25,11 @@ concurrency:
 
 jobs:
   renovate-env:
-    name: renovate-env
-    runs-on: ubuntu-latest
-    # Job-level, not workflow-level: this token is only used after this job
-    # exports it (locally, outside this run entirely, to approve PRs there),
-    # never by this job's own steps - scoping it to the one job that needs
-    # it avoids granting it workflow-wide for no reason.
+    uses: ./.github/workflows/renovate-env-v1.yml
     permissions:
       pull-requests: write # exported RENOVATE_GITHUB_ACTIONS_TOKEN approves PRs locally
-    steps:
-      - name: Export Renovate Secrets
-        run: |
-          set -Eeuo pipefail
-
-          printenv GPG_PUBLIC_KEY > /var/tmp/gpg.pub
-
-          {
-            echo "RENOVATE_TOKEN=${RENOVATE_TOKEN@Q}"
-            echo "RENOVATE_GITHUB_ACTIONS_TOKEN=${RENOVATE_GITHUB_ACTIONS_TOKEN@Q}"
-          } | gpg --encrypt --armor --recipient-file /var/tmp/gpg.pub > /var/tmp/renovate-env.asc
-        env:
-          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
-          RENOVATE_GITHUB_ACTIONS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GPG_PUBLIC_KEY: ${{ inputs.gpg_public_key }}
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: renovate-env
-          path: /var/tmp/renovate-env.asc
-          retention-days: 1
-      - run: |
-          set -Eeuo pipefail
-          sleep "${LIFETIME}"
-        env:
-          LIFETIME: ${{ inputs.lifetime }}
+    with:
+      lifetime: ${{ inputs.lifetime }}
+      gpg_public_key: ${{ inputs.gpg_public_key }}
+    secrets:
+      RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}

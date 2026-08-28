@@ -1,9 +1,9 @@
-# Dogfoods renovate-reusable.yml (the workflow_call definition) against this
-# repository itself - functionally identical to templates/renovate.yml, the
-# caller other repos copy in as their own renovate.yml, except this one
-# always calls the *local* renovate-reusable.yml (`uses: ./...`), so a
-# branch here is exercised by its own in-progress changes rather than by
-# whatever last shipped on main.
+# Dogfoods renovate-v1.yml (the workflow_call definition) against this
+# repository itself - functionally identical to
+# part/renovate/v1/templates/renovate.yml, the caller other repos copy in as
+# their own renovate.yml, except this one always calls the *local*
+# renovate-v1.yml (`uses: ./...`), so a branch here is exercised by its own
+# in-progress changes rather than by whatever last shipped on main.
 name: renovate
 
 on:
@@ -53,7 +53,7 @@ concurrency:
 
 jobs:
   renovate:
-    uses: ./.github/workflows/renovate-reusable.yml
+    uses: ./.github/workflows/renovate-v1.yml
     permissions:
       contents: read # checkout
       pull-requests: write # postprocess.sh approves PRs

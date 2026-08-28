@@ -76,7 +76,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run Renovate
-        uses: ./.github/_shared/actions/renovate
+        uses: ./.github/_shared/part/renovate/v1
         with:
           repo-cache: ${{ inputs.repo-cache }}
           log-level: ${{ inputs.log-level }}
