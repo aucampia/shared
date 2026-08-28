@@ -152,6 +152,15 @@ org-level Actions secret - `RENOVATE_TOKEN` has to be set per repository for
 CI. `task renovate:update-token` mints a fine-grained PAT (pre-filled URL
 included) and stores it as that repository's Actions secret by default.
 
+The PAT includes the account-level Email addresses (read) permission so
+Renovate can look up the token owner's email and set `gitAuthor` to that
+identity itself. Without it, the lookup fails silently and Renovate falls
+back to its own hardcoded default (`renovate@whitesourcesoftware.com`),
+which GitHub flags as "Unverified" since it belongs to a Mend-owned account
+you don't control - a warning, not a failure, but one worth avoiding without
+hardcoding a `gitAuthor` in config. A token minted before this permission
+was added can gain it in place, no need to regenerate the value.
+
 GitHub's PAT template URL cannot pre-fill "Repository access" (there is no
 query parameter for it), so the task prints exactly what to pick: "Only
 select repositories" plus REPOS (default: REPO's short name) by default,

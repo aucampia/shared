@@ -224,12 +224,21 @@ tasks:
       time it runs, it does not add to it, so pass every repository that
       needs access, comma-separated, on every run:
       REPOS=shared,cookiecutter-python,signalsmith.
+
+      Includes the account-level Email addresses (read) permission so
+      Renovate can look up its own commit email from the token instead of
+      falling back to its hardcoded default gitAuthor - see "Token
+      handling" in README.md. An existing token minted before this
+      permission was added can gain it in place (Settings > Developer
+      settings > Fine-grained tokens > edit > add Email addresses:
+      Read-only), no need to regenerate the value or update the stored
+      secret.
     vars:
       TARGET: '{{.TARGET | default "actions"}}'
       SCOPE: '{{.SCOPE | default "repo"}}'
       REPO: '{{.REPO | default "aucampia/shared"}}'
       REPOS: '{{.REPOS | default (.REPO | trimPrefix "aucampia/")}}'
-      PAT_URL: "https://github.com/settings/personal-access-tokens/new?name={{print \"Renovate - \" .REPO | urlquery}}&description={{print \"Token used by Renovate for \" .REPO | urlquery}}&target_name=aucampia&expires_in=356&members=read&statuses=write&contents=write&vulnerability_alerts=read&issues=write&pull_requests=write&workflows=write"
+      PAT_URL: "https://github.com/settings/personal-access-tokens/new?name={{print \"Renovate - \" .REPO | urlquery}}&description={{print \"Token used by Renovate for \" .REPO | urlquery}}&target_name=aucampia&expires_in=356&members=read&statuses=write&contents=write&vulnerability_alerts=read&issues=write&pull_requests=write&workflows=write&emails=read"
     cmds:
       - cmd: |
           cat <<'EOF'
@@ -241,6 +250,7 @@ tasks:
           - Dependabot alerts: Read-only (Level: Repository or Organization)
           - Members: Read-only (Level: Organization)
           - Workflows: Read and write (Level: Repository or Organization)
+          - Email addresses: Read-only (Level: Account)
 
           ⚠️ Repository access - the URL below cannot pre-fill this step:
           {{if eq .SCOPE "all"}}select "All repositories". This token will reach every repository in the account, not just {{.REPOS}} - only chosen because SCOPE=all was passed.{{else}}select "Only select repositories" and add exactly: {{.REPOS}} (pass SCOPE=all instead for a token that can reach every repository in the account).{{end}}
