@@ -1,8 +1,8 @@
 # Optional: paste the "renovate:" task below into a consumer repository's own
 # Taskfile.yml (under `tasks:`) for a `task renovate` that works from that
 # repository's own checkout, with no separate aucampia/shared clone to
-# manage. It shallow-clones aucampia/shared into .cache/shared (add that to
-# .gitignore) and delegates to the exact script CI runs.
+# manage. It shallow-clones aucampia/shared into .cache/gh-aucampia-shared
+# (add that to .gitignore) and delegates to the exact script CI runs.
 #
 # This is the secondary path - the primary one is running `task renovate`
 # from an aucampia/shared checkout with RENOVATE_WORKSPACE pointed at this
@@ -11,7 +11,7 @@ tasks:
   renovate:
     desc: Run renovate
     vars:
-      SHARED_DIR: "{{.SHARED_DIR | default \".cache/shared\"}}"
+      SHARED_DIR: "{{.SHARED_DIR | default \".cache/gh-aucampia-shared\"}}"
       SHARED_REF: "{{.SHARED_REF | default \"main\"}}"
     cmds:
       - |

@@ -60,10 +60,10 @@ jobs:
         with:
           repository: aucampia/shared
           ref: ${{ inputs.shared-ref || 'main' }}
-          path: .github/_shared
+          path: .github/_gh-aucampia-shared
 
       - name: Run Renovate
-        uses: ./.github/_shared/part/renovate/v1/action
+        uses: ./.github/_gh-aucampia-shared/part/renovate/v1/action
         with:
           repo-cache: ${{ inputs.repo-cache }}
           log-level: ${{ inputs.log-level }}

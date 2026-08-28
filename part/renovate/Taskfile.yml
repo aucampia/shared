@@ -44,7 +44,7 @@ tasks:
       - |
         set -euo pipefail
         RENOVATE_TOKEN="" RENOVATE_GITHUB_ACTIONS_TOKEN="" RENOVATE_REPOSITORIES="" \
-          docker compose -f {{.TASKFILE_DIR}}/v1/action/docker-compose.yaml --project-name renovate-shared \
+          docker compose -f {{.TASKFILE_DIR}}/v1/action/docker-compose.yaml --project-name renovate-gh-aucampia-shared \
           run --entrypoint="" --quiet-build --quiet-pull -T --rm renovate \
           renovate-config-validator --strict /srv/action/renovate-global.json5
     vars:

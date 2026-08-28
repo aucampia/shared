@@ -11,7 +11,8 @@ entry point both CI and local runs go through:
 1. `renovate.yml` (root, `workflow_call`) or a consumer's copy of
    `v1/templates/renovate.yml` calls `renovate-v1.yml` (root,
    `workflow_call`), which checks out `aucampia/shared` into
-   `.github/_shared` and runs `uses: ./.github/_shared/part/renovate/v1/action`.
+   `.github/_gh-aucampia-shared` and runs
+   `uses: ./.github/_gh-aucampia-shared/part/renovate/v1/action`.
    `renovate-v1.yml` itself is deliberately thin - just the two checkouts
    and the action call - so that everything CI-specific (restoring and
    exporting the repository cache, uploading the report) lives in

@@ -34,7 +34,7 @@ set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 COMPOSE_FILE="${SCRIPT_DIR}/docker-compose.yaml"
-COMPOSE=(docker compose -f "${COMPOSE_FILE}" --project-name renovate-shared)
+COMPOSE=(docker compose -f "${COMPOSE_FILE}" --project-name renovate-gh-aucampia-shared)
 
 : "${RENOVATE_WORKSPACE:?RENOVATE_WORKSPACE must be set}"
 RENOVATE_WORKSPACE="$(cd -- "${RENOVATE_WORKSPACE}" && pwd)"
