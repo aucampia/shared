@@ -4,7 +4,8 @@ Tools:
 
 - `task` as task runner
 - `mise` pins every dev tool (see `.mise.toml` / `mise.lock`)
-- `docker compose` runs Renovate and the lint container
+- `docker compose` (`actions/renovate/docker-compose.yaml`) runs Renovate;
+  the top-level `docker-compose.yaml` is unrelated devtools tooling
 
 Other info:
 
