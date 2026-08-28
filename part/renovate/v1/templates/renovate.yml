@@ -71,7 +71,7 @@ jobs:
     permissions:
       contents: read # checkout
       pull-requests: write # postprocess.sh approves PRs
-      actions: read # dawidd6/action-download-artifact reads prior runs
+      actions: read # action.yml's dawidd6/action-download-artifact step
     with:
       repo-cache: ${{ inputs.repoCache || 'enabled' }}
       log-level: ${{ inputs.logLevel || 'info' }}

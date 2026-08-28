@@ -12,20 +12,28 @@ point both CI and local runs go through:
    `v1/templates/renovate.yml` calls `renovate-v1.yml` (root,
    `workflow_call`), which checks out `aucampia/shared` into
    `.github/_shared` and runs `uses: ./.github/_shared/part/renovate/v1`.
-   Locally, `task renovate` calls `v1/run.sh` directly - same script, no
-   composite-action wrapper.
-2. `v1/run.sh` resolves the global config file (see "Config resolution"
+   `renovate-v1.yml` itself is deliberately thin - just the two checkouts
+   and the action call - so that everything CI-specific (restoring and
+   exporting the repository cache, uploading the report) lives in
+   `v1/action.yml` instead. Locally, `task renovate` calls `v1/run.sh`
+   directly - same script, no composite-action wrapper, and no GitHub
+   Actions artifacts to restore or export.
+2. `v1/action.yml` restores the repository cache artifact (CI only, see
+   "Cache and report round trip" below), then runs `v1/run.sh`.
+3. `v1/run.sh` resolves the global config file (see "Config resolution"
    below), then drives `docker compose -f v1/docker-compose.yaml` to run
    the `renovate` service: validate the config with
    `renovate-config-validator --strict`, optionally restore the repository
    cache, run Renovate, export the cache, and copy out `report.json`.
-3. Inside the container, `v1/entrypoint.sh` sources the env Renovate itself
+4. Inside the container, `v1/entrypoint.sh` sources the env Renovate itself
    sets up, runs `renovate`, then runs `v1/postprocess.sh`.
-4. `v1/postprocess.sh` reads the report Renovate just wrote and, when
+5. `v1/postprocess.sh` reads the report Renovate just wrote and, when
    `RENOVATE_AUTO_APPROVE=true`, approves every open, unreviewed PR via the
    GitHub API, so `platformAutomerge` (set in `v1/default.json`) can merge
    it. It never signs anything - see `README.md` "Ruleset compatibility" for
    what a repository's branch ruleset needs as a result.
+6. Back in `v1/action.yml`, once `run.sh` returns, it exports the cache and
+   uploads the report as GitHub Actions artifacts (CI only).
 
 ## Container mounts
 
@@ -78,14 +86,15 @@ container path under `/srv/action` even though the input is documented as
   container's `/tmp/renovate/cache` before the run and exports it back out
   after, so a scheduled run's cache survives to the next one. In CI this
   round-trips through an `actions/upload-artifact` /
-  `dawidd6/action-download-artifact` pair keyed on
-  `RENOVATE_CACHE_KEY` (`renovate-v1.yml`); a dry run does not upload its
-  cache, so a branch under test cannot poison the scheduled run's cache.
+  `dawidd6/action-download-artifact` pair keyed on the fixed name
+  `renovate-cache`, both steps living in `v1/action.yml` (not the reusable
+  workflow); a dry run does not upload its cache, so a branch under test
+  cannot poison the scheduled run's cache.
 - **Report** (`RENOVATE_REPORT_FILE`): `run.sh` copies
   `/tmp/renovate/report.json` out of the container unconditionally after
-  every run (not just successful ones) and uploads it as the
-  `renovate-report` artifact, which `task renovate:gha:run` downloads for
-  inspection.
+  every run (not just successful ones); `v1/action.yml` then uploads it as
+  the `renovate-report` artifact, which `task renovate:gha:run` downloads
+  for inspection.
 
 ## Versioning
 

@@ -41,11 +41,6 @@ on:
       RENOVATE_TOKEN:
         required: true
 
-env:
-  RENOVATE_CACHE_ARCHIVE: /tmp/renovate-cache.tar.gz
-  RENOVATE_REPORT_FILE: /tmp/renovate-report.json
-  RENOVATE_CACHE_KEY: renovate-cache
-
 jobs:
   renovate:
     name: renovate
@@ -53,7 +48,7 @@ jobs:
     permissions:
       contents: read # checkout
       pull-requests: write # postprocess.sh approves PRs
-      actions: read # dawidd6/action-download-artifact reads prior runs
+      actions: read # action.yml's dawidd6/action-download-artifact step
     steps:
       - name: Checkout calling repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -67,14 +62,6 @@ jobs:
           ref: ${{ inputs.shared-ref || 'main' }}
           path: .github/_shared
 
-      - uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7 # v24
-        if: inputs.repo-cache != 'disabled'
-        continue-on-error: true
-        with:
-          name: ${{ env.RENOVATE_CACHE_KEY }}
-          path: /tmp
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Run Renovate
         uses: ./.github/_shared/part/renovate/v1
         with:
@@ -83,24 +70,5 @@ jobs:
           auto-approve: ${{ inputs.auto-approve }}
           dry-run: ${{ inputs.dry-run }}
           config-file: ${{ inputs.config-file }}
-          cache-archive: ${{ env.RENOVATE_CACHE_ARCHIVE }}
-          report-file: ${{ env.RENOVATE_REPORT_FILE }}
           renovate-token: ${{ secrets.RENOVATE_TOKEN }}
           github-actions-token: ${{ secrets.GITHUB_TOKEN }}
-
-      # A dry run does not upload its cache: the artifact is shared with the
-      # scheduled run on the default branch, and a branch under test should
-      # not be able to poison it.
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: inputs.repo-cache != 'disabled' && inputs.dry-run == 'disabled'
-        with:
-          name: ${{ env.RENOVATE_CACHE_KEY }}
-          path: ${{ env.RENOVATE_CACHE_ARCHIVE }}
-          retention-days: 1
-
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        if: always()
-        with:
-          name: renovate-report
-          path: ${{ env.RENOVATE_REPORT_FILE }}
-          retention-days: 5

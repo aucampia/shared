@@ -60,6 +60,18 @@ outputs:
 runs:
   using: composite
   steps:
+    # Only relevant in CI (github.action_path is under a checkout); a local
+    # `task renovate` run calls run.sh directly and never reaches here, so
+    # it has no GitHub Actions artifacts to restore.
+    - name: Restore repository cache
+      uses: dawidd6/action-download-artifact@d63b86af1b34672e53c440b1b83979861906bad7 # v24
+      if: inputs.repo-cache != 'disabled'
+      continue-on-error: true
+      with:
+        name: renovate-cache
+        path: /tmp
+        github_token: ${{ github.token }}
+
     - name: Run Renovate
       shell: bash
       working-directory: ${{ github.action_path }}
@@ -77,3 +89,22 @@ runs:
         RENOVATE_TOKEN: ${{ inputs.renovate-token }}
         RENOVATE_GITHUB_ACTIONS_TOKEN: ${{ inputs.github-actions-token }}
         GITHUB_TOKEN: ${{ github.token }}
+
+    # A dry run does not upload its cache: the artifact is shared with the
+    # scheduled run on the default branch, and a branch under test should
+    # not be able to poison it.
+    - name: Export repository cache
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      if: inputs.repo-cache != 'disabled' && inputs.dry-run == 'disabled'
+      with:
+        name: renovate-cache
+        path: ${{ inputs.cache-archive }}
+        retention-days: 1
+
+    - name: Upload report
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      if: always()
+      with:
+        name: renovate-report
+        path: ${{ inputs.report-file }}
+        retention-days: 5
