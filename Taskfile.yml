@@ -282,12 +282,27 @@ tasks:
     summary: |
       Prints a pre-filled fine-grained-PAT creation URL, reads the PAT from
       stdin, and stores it as REPO's Actions secret (default: this repo).
+
       Pass TARGET=codespaces to store it as your account-wide Codespaces
       secret instead, so `task renovate` picks it up in any Codespace with
-      no per-repo setup.
+      no per-repo setup - only for local runs, not CI: GitHub Actions
+      workflows cannot read Codespaces secrets, so a repo's own
+      .github/workflows/renovate.yml still needs its own Actions
+      RENOVATE_TOKEN secret regardless.
+
+      TARGET=codespaces requires the `codespace` OAuth scope on your `gh`
+      token (`gh auth refresh -s codespace` first) - without it the API
+      fails with the misleading "Must have admin rights to Repository."
+
+      REPOS (TARGET=codespaces only, default: REPO's short name) sets which
+      repositories can see the secret - `gh secret set --repos` REPLACES
+      that list every time it runs, it does not add to it, so pass every
+      repository that needs access, comma-separated, on every run:
+      REPOS=shared,cookiecutter-python,signalsmith.
     vars:
       TARGET: '{{.TARGET | default "actions"}}'
       REPO: '{{.REPO | default "aucampia/shared"}}'
+      REPOS: '{{.REPOS | default (.REPO | trimPrefix "aucampia/")}}'
       PAT_URL: "https://github.com/settings/personal-access-tokens/new?name={{print \"Renovate - \" .REPO | urlquery}}&description={{print \"Token used by Renovate for \" .REPO | urlquery}}&target_name=aucampia&expires_in=356&members=read&statuses=write&contents=write&vulnerability_alerts=read&issues=write&pull_requests=write&workflows=write"
     cmds:
       - cmd: |
@@ -315,7 +330,7 @@ tasks:
         echo "Paste your PAT here:"
         read -r RENOVATE_TOKEN
         {{if eq .TARGET "codespaces"}}
-        gh secret set RENOVATE_TOKEN --user --app codespaces <<< "${RENOVATE_TOKEN}"
+        gh secret set RENOVATE_TOKEN --user --app codespaces --repos {{.REPOS | q}} <<< "${RENOVATE_TOKEN}"
         {{else}}
         gh secret set RENOVATE_TOKEN --repo {{.REPO}} <<< "${RENOVATE_TOKEN}"
         {{end}}

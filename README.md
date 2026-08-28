@@ -117,13 +117,26 @@ therefore needs:
 ## Token handling
 
 `aucampia` is a personal account, not an organization, so there is no
-org-level Actions secret - `RENOVATE_TOKEN` has to be set per repository.
-`task renovate:update-token` mints a fine-grained PAT (pre-filled URL
-included) and stores it either as a repository Actions secret (default) or,
-with `TARGET=codespaces`, as an account-wide Codespaces secret - set once,
-picked up by `task renovate` in any Codespace with no per-repo step, since
-`actions/renovate/run.sh` reads the token from the environment and never
-shells out to `gh`.
+org-level Actions secret - `RENOVATE_TOKEN` has to be set per repository for
+CI. `task renovate:update-token` mints a fine-grained PAT (pre-filled URL
+included) and stores it as that repository's Actions secret by default.
+
+Separately, `TARGET=codespaces` stores the *same kind* of PAT as an
+account-wide Codespaces secret, for local runs only - GitHub Actions cannot
+read Codespaces secrets, so it does not substitute for the per-repo Actions
+secret above. Set once, it is picked up by `task renovate` in any Codespace
+with no per-repo step, since `actions/renovate/run.sh` reads the token from
+the environment and never shells out to `gh`. Two things this needs that the
+default path does not:
+
+- The `codespace` OAuth scope on your `gh` token
+  (`gh auth refresh -s codespace`) - without it, `gh secret set --user`
+  fails with a misleading "Must have admin rights to Repository.", which is
+  actually a missing-scope error, not a permissions one.
+- A `REPOS=repo1,repo2,...` list of every repository that should see the
+  secret, comma-separated, on *every* invocation -
+  `gh secret set --user --repos` replaces the repository list rather than
+  adding to it, so omitting a previously-added repository drops its access.
 
 ## Local runs
 
