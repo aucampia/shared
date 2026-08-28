@@ -147,6 +147,50 @@ tasks:
         source "${TMP_DIR}/renovate-env.sh"
         export RENOVATE_TOKEN RENOVATE_GITHUB_ACTIONS_TOKEN
         exec {{.CLI_ARGS}}
+  check-repo:
+    desc: Check a repository's settings for running Renovate via this action
+    summary: |
+      Read-only: checks REPO (default: this repo) for two things
+      renovate.yml and postprocess.sh need, and prints the exact command or
+      URL to fix whichever is missing. Never changes anything itself.
+
+      - The RENOVATE_TOKEN Actions secret exists (`gh secret list`) - see
+        `task renovate:update-token` if it does not.
+      - "Allow GitHub Actions to create and approve pull requests"
+        (`can_approve_pull_request_reviews` via the GitHub API) is enabled -
+        off by default on a personal-account repo like REPO, since there is
+        no organization to inherit it from. Without it,
+        `v1/action/postprocess.sh`'s auto-approve step fails with "GitHub
+        Actions is not permitted to approve pull requests."
+    vars:
+      REPO: '{{.REPO | default "aucampia/shared"}}'
+    cmds:
+      - |
+        set -euo pipefail
+
+        status=0
+
+        if gh secret list --repo {{.REPO | q}} --json name --jq '.[].name' | grep -qx RENOVATE_TOKEN; then
+          echo "OK: RENOVATE_TOKEN secret is set on {{.REPO}}" >&2
+        else
+          echo "MISSING: RENOVATE_TOKEN secret is not set on {{.REPO}}" >&2
+          echo "  Fix: REPO={{.REPO}} task renovate:update-token" >&2
+          status=1
+        fi
+
+        WORKFLOW_PERMISSIONS="$(gh api "repos/{{.REPO}}/actions/permissions/workflow")"
+        DEFAULT_PERMISSIONS="$(jq -er '.default_workflow_permissions' <<<"${WORKFLOW_PERMISSIONS}")"
+        CAN_APPROVE="$(jq -r '.can_approve_pull_request_reviews' <<<"${WORKFLOW_PERMISSIONS}")"
+        if [ "${CAN_APPROVE}" = "true" ]; then
+          echo "OK: GitHub Actions can create and approve pull requests on {{.REPO}}" >&2
+        else
+          echo "MISSING: GitHub Actions cannot approve pull requests on {{.REPO}} - postprocess.sh's auto-approve step will fail with \"GitHub Actions is not permitted to approve pull requests.\"" >&2
+          echo "  Fix: https://github.com/{{.REPO}}/settings/actions - under \"Workflow permissions\", check \"Allow GitHub Actions to create and approve pull requests\"" >&2
+          echo "  Or:  gh api --method PUT repos/{{.REPO}}/actions/permissions/workflow -f default_workflow_permissions=${DEFAULT_PERMISSIONS} -F can_approve_pull_request_reviews=true" >&2
+          status=1
+        fi
+
+        exit "${status}"
   update-token:
     desc: Mint a fine-grained Renovate PAT and store it as a secret
     summary: |

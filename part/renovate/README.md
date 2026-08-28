@@ -127,6 +127,24 @@ therefore needs:
   after that. A ruleset that dismisses stale reviews on push wants a human
   to look at every push anyway.
 
+Separately, and easy to miss because the error surfaces from
+`postprocess.sh` rather than the ruleset: the repository setting "Allow
+GitHub Actions to create and approve pull requests" (Settings > Actions >
+General > Workflow permissions) is off by default on a personal-account
+repository, since there is no organization to inherit it from. Without it,
+the API call fails outright with "GitHub Actions is not permitted to
+approve pull requests," regardless of the ruleset or the job's own
+`permissions: pull-requests: write`. `task renovate:check-repo` checks this
+too.
+
+## Repository checks
+
+`task renovate:check-repo [REPO=aucampia/<repo>]` is read-only: it checks
+that REPO has the `RENOVATE_TOKEN` Actions secret and that GitHub Actions is
+allowed to approve pull requests on it (see "Token handling" and "Ruleset
+compatibility" below for why each matters), and prints the exact command or
+URL to fix whichever is missing rather than changing anything itself.
+
 ## Token handling
 
 `aucampia` is a personal account, not an organization, so there is no
