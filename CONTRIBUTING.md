@@ -16,7 +16,7 @@
 Observed in this repository; write new code to match rather than
 introducing a different style.
 
-### Shell (`part/*/v1/*.sh`)
+### Shell (`part/*/v1/**/*.sh`)
 
 - `#!/usr/bin/env bash`, then `set -Eeuo pipefail` - repeated inside any
   heredoc'd `bash -c` block too, since `set` does not propagate into one.

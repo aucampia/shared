@@ -1,7 +1,7 @@
 # mise
 .rumdl_cache/
 
-# Local Renovate scratch state - see part/renovate/v1/run.sh
+# Local Renovate scratch state - see part/renovate/v1/action/run.sh
 .cache/
 /renovate-output.log
 /renovate-report.json

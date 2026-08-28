@@ -3,7 +3,7 @@
     // https://docs.renovatebot.com/self-hosted-configuration/
     // Default self-hosted global config for the Renovate composite action.
     // A consumer repository that has its own renovate-global.json5 at its
-    // workspace root gets that one instead - see part/renovate/v1/run.sh.
+    // workspace root gets that one instead - see part/renovate/v1/action/run.sh.
     "$schema": "https://docs.renovatebot.com/renovate-global-schema.json",
     "platform": "github",
     "repositoryCache": "enabled",

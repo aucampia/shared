@@ -15,9 +15,9 @@ this part fits into it.
 - `v1/` - the current version of everything below. A future breaking change
   gets a `v2/` alongside it; see the repository root
   [`SPEC.md`](../../SPEC.md) for the versioning rule.
-- `v1/action.yml` - the composite action, the Docker Compose service and
-  entrypoint that run Renovate, the auto-approve postprocessor, and the
-  default self-hosted global config (`renovate-global.json5`).
+- `v1/action/` - the composite action (`action.yml`), the Docker Compose
+  service and entrypoint that run Renovate, the auto-approve postprocessor,
+  and the default self-hosted global config (`renovate-global.json5`).
 - `v1/default.json` - the Renovate shareable preset
   (`github>aucampia/shared//part/renovate/v1/default.json`) carrying the
   repo-config policy: labels, automerge, enabled managers, lockfile
@@ -53,7 +53,7 @@ this part fits into it.
 The action resolves the self-hosted global config file per run: if the
 workspace being renovated has its own `renovate-global.json5` at its root,
 that file is used verbatim, in full; otherwise
-`part/renovate/v1/renovate-global.json5` (this repository's default) is
+`part/renovate/v1/action/renovate-global.json5` (this repository's default) is
 used. There is no merging between the two - a repository that wants to
 override policy without replacing the whole self-hosted config should
 instead extend `github>aucampia/shared//part/renovate/v1/default.json` from
@@ -67,7 +67,8 @@ checkout - see [`SPEC.md`](SPEC.md) for the mechanics.
 
 `v1/default.json` is the repo-config layer every repository gets by default
 (via `globalExtends` in the global config - see the comment in
-`v1/renovate-global.json5` for why `globalExtends` rather than `extends`). A
+`v1/action/renovate-global.json5` for why `globalExtends` rather than
+`extends`). A
 few choices are non-obvious enough to write down here, since a preset file
 cannot carry comments:
 
@@ -121,7 +122,8 @@ therefore needs:
   - a ruleset with that rule needs a human to merge Renovate PRs instead).
 - `dismiss_stale_reviews_on_push: false` - `postprocess.sh` treats a
   dismissed review as a human deliberately withdrawing approval (see the
-  comment above the check in `v1/postprocess.sh`) and will never re-approve
+  comment above the check in `v1/action/postprocess.sh`) and will never
+  re-approve
   after that. A ruleset that dismisses stale reviews on push wants a human
   to look at every push anyway.
 
@@ -136,7 +138,8 @@ Separately, `TARGET=codespaces` stores the *same kind* of PAT as an
 account-wide Codespaces secret, for local runs only - GitHub Actions cannot
 read Codespaces secrets, so it does not substitute for the per-repo Actions
 secret above. Set once, it is picked up by `task renovate` in any Codespace
-with no per-repo step, since `part/renovate/v1/run.sh` reads the token from
+with no per-repo step, since `part/renovate/v1/action/run.sh` reads the
+token from
 the environment and never shells out to `gh`. Two things this needs that the
 default path does not:
 

@@ -63,7 +63,7 @@ jobs:
           path: .github/_shared
 
       - name: Run Renovate
-        uses: ./.github/_shared/part/renovate/v1
+        uses: ./.github/_shared/part/renovate/v1/action
         with:
           repo-cache: ${{ inputs.repo-cache }}
           log-level: ${{ inputs.log-level }}

@@ -28,7 +28,7 @@ trap dump_logs EXIT
 source /usr/local/etc/env
 renovate
 
-# /srv/action is the action directory (part/renovate/v1/), bind-mounted
+# /srv/action is the action directory (part/renovate/v1/action/), bind-mounted
 # read-only - see docker-compose.yaml.
 /srv/action/postprocess.sh
 

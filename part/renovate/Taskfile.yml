@@ -18,11 +18,11 @@ tasks:
 
         RENOVATE_WORKSPACE=~/code/aucampia/signalsmith task renovate
 
-      This is the exact code path CI runs, via part/renovate/v1/run.sh.
+      This is the exact code path CI runs, via part/renovate/v1/action/run.sh.
     env:
       RENOVATE_WORKSPACE: '{{.RENOVATE_WORKSPACE | default "."}}'
     cmds:
-      - "{{.TASKFILE_DIR}}/v1/run.sh"
+      - "{{.TASKFILE_DIR}}/v1/action/run.sh"
   dry-run:
     desc: Dry-run Renovate against a workspace using your own gh token
     cmds:
@@ -44,7 +44,7 @@ tasks:
       - |
         set -euo pipefail
         RENOVATE_TOKEN="" RENOVATE_GITHUB_ACTIONS_TOKEN="" RENOVATE_REPOSITORIES="" \
-          docker compose -f {{.TASKFILE_DIR}}/v1/docker-compose.yaml --project-name renovate-shared \
+          docker compose -f {{.TASKFILE_DIR}}/v1/action/docker-compose.yaml --project-name renovate-shared \
           run --entrypoint="" --quiet-build --quiet-pull -T --rm renovate \
           renovate-config-validator --strict /srv/action/renovate-global.json5
     vars:

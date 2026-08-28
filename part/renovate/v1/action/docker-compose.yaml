@@ -3,7 +3,8 @@
 #
 # Relative host paths below resolve against this file's own directory (the
 # "project directory"), not the caller's working directory - so `.` is
-# always this action's own part/renovate/v1/, wherever it was checked out.
+# always this action's own part/renovate/v1/action/, wherever it was checked
+# out.
 # run.sh always passes --project-name explicitly, so the cache volume below
 # has a stable name across runs regardless of that checkout path.
 services:
