@@ -45,13 +45,19 @@ Creation and approval deliberately use different tokens:
 - **`RENOVATE_TOKEN`** (a personal fine-grained PAT - see `README.md`
   "Token handling") is Renovate's platform token, so it authors every
   commit, branch push and PR. It has to be a PAT rather than the job's
-  `GITHUB_TOKEN` because GitHub Actions never triggers other workflows from
-  a push or PR made with the default `GITHUB_TOKEN` (an anti-recursion
-  guard). If Renovate opened PRs with `GITHUB_TOKEN`, checks triggered by a
-  `pull_request` event - like this repository's own `validate` workflow -
-  would never run, so a ruleset requiring that status check could never be
-  satisfied and `platformAutomerge` would stall on every PR, silently and
-  permanently.
+  `GITHUB_TOKEN`, because GitHub suppresses workflow runs for events
+  triggered by `GITHUB_TOKEN` so that a workflow cannot trigger itself.
+  `pull_request` is a partial exception - `opened`, `synchronize` and
+  `reopened` do create runs, but in an *approval-required* state that a
+  human has to release with "Approve workflows to run" in the merge box.
+  Either way a required status check like this repository's `validate`
+  never goes green on its own, so the ruleset is never satisfied and
+  `platformAutomerge` stalls on every PR.
+  <https://docs.github.com/en/actions/concepts/security/github_token>
+  A GitHub App installation token is the other identity that works here;
+  a PAT is what this setup uses because it needs no app to register and
+  install, and Renovate cannot autodetect `username`/`gitAuthor` from an
+  app token the way it does from a PAT.
 - **`RENOVATE_GITHUB_ACTIONS_TOKEN`** (defaults to the job's `GITHUB_TOKEN`)
   is what `postprocess.sh` uses to approve PRs. Approving is a REST call,
   not a push or a PR creation, so it never trips the anti-recursion guard -
