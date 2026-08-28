@@ -153,6 +153,16 @@ tasks:
       Prints a pre-filled fine-grained-PAT creation URL, reads the PAT from
       stdin, and stores it as REPO's Actions secret (default: this repo).
 
+      Repository access defaults to "Only select repositories" - REPOS
+      (default: REPO's short name) - since GitHub's PAT template URL has no
+      query parameter for this step (unlike every other field: see
+      https://github.blog/changelog/2025-08-26-template-urls-for-fine-grained-pats-and-updated-permissions-ui/),
+      so the printed instructions call it out and it has to be picked by
+      hand. Pass SCOPE=all for a token that can reach every repository in
+      the account instead - strictly wider than the default, so only ask
+      for it when Renovate genuinely needs to touch repositories beyond
+      REPOS.
+
       Pass TARGET=codespaces to store it as your account-wide Codespaces
       secret instead, so `task renovate` picks it up in any Codespace with
       no per-repo setup - only for local runs, not CI: GitHub Actions
@@ -164,13 +174,15 @@ tasks:
       token (`gh auth refresh -s codespace` first) - without it the API
       fails with the misleading "Must have admin rights to Repository."
 
-      REPOS (TARGET=codespaces only, default: REPO's short name) sets which
-      repositories can see the secret - `gh secret set --repos` REPLACES
-      that list every time it runs, it does not add to it, so pass every
-      repository that needs access, comma-separated, on every run:
+      REPOS (default: REPO's short name) sets which repositories the PAT
+      instructions list and, for TARGET=codespaces, which repositories can
+      see the secret - `gh secret set --repos` REPLACES that list every
+      time it runs, it does not add to it, so pass every repository that
+      needs access, comma-separated, on every run:
       REPOS=shared,cookiecutter-python,signalsmith.
     vars:
       TARGET: '{{.TARGET | default "actions"}}'
+      SCOPE: '{{.SCOPE | default "repo"}}'
       REPO: '{{.REPO | default "aucampia/shared"}}'
       REPOS: '{{.REPOS | default (.REPO | trimPrefix "aucampia/")}}'
       PAT_URL: "https://github.com/settings/personal-access-tokens/new?name={{print \"Renovate - \" .REPO | urlquery}}&description={{print \"Token used by Renovate for \" .REPO | urlquery}}&target_name=aucampia&expires_in=356&members=read&statuses=write&contents=write&vulnerability_alerts=read&issues=write&pull_requests=write&workflows=write"
@@ -186,13 +198,13 @@ tasks:
           - Members: Read-only (Level: Organization)
           - Workflows: Read and write (Level: Repository or Organization)
 
-          For "Repository access", select "Only select repositories" and
-          add every repository this token needs to renovate.
+          ⚠️ Repository access - the URL below cannot pre-fill this step:
+          {{if eq .SCOPE "all"}}select "All repositories". This token will reach every repository in the account, not just {{.REPOS}} - only chosen because SCOPE=all was passed.{{else}}select "Only select repositories" and add exactly: {{.REPOS}} (pass SCOPE=all instead for a token that can reach every repository in the account).{{end}}
 
           ⚠️ Make sure to delete any old tokens after generating a new token ⚠️
 
-          The following URL should take you to a page with most
-          parameters except "Repository access" pre-filled:
+          The following URL should take you to a page with every other
+          field pre-filled:
           {{.PAT_URL}}
           EOF
         silent: true

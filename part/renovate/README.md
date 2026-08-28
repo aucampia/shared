@@ -134,14 +134,19 @@ org-level Actions secret - `RENOVATE_TOKEN` has to be set per repository for
 CI. `task renovate:update-token` mints a fine-grained PAT (pre-filled URL
 included) and stores it as that repository's Actions secret by default.
 
+GitHub's PAT template URL cannot pre-fill "Repository access" (there is no
+query parameter for it), so the task prints exactly what to pick: "Only
+select repositories" plus REPOS (default: REPO's short name) by default,
+or "All repositories" if the task was run with SCOPE=all - an explicit,
+strictly wider opt-in, never the default.
+
 Separately, `TARGET=codespaces` stores the *same kind* of PAT as an
 account-wide Codespaces secret, for local runs only - GitHub Actions cannot
 read Codespaces secrets, so it does not substitute for the per-repo Actions
 secret above. Set once, it is picked up by `task renovate` in any Codespace
 with no per-repo step, since `part/renovate/v1/action/run.sh` reads the
-token from
-the environment and never shells out to `gh`. Two things this needs that the
-default path does not:
+token from the environment and never shells out to `gh`. Two things this
+needs that the default path does not:
 
 - The `codespace` OAuth scope on your `gh` token
   (`gh auth refresh -s codespace`) - without it, `gh secret set --user`
