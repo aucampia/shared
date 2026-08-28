@@ -73,10 +73,20 @@ export RENOVATE_REPOSITORIES
 # fall back to this action's default.
 if [ -n "${RENOVATE_CONFIG_FILE_OVERRIDE:-}" ]; then
     CONFIG_FILE_HOST="${RENOVATE_CONFIG_FILE_OVERRIDE}"
-    CONFIG_FILE_CONTAINER="/srv/action/$(basename -- "${CONFIG_FILE_HOST}")"
-    # Only true when the override happens to live inside SCRIPT_DIR - not
-    # asserted, just documented: an override outside the workspace or action
-    # directory is the caller's responsibility to make visible in-container.
+    # Documented as "absolute path inside the caller's checkout" (see
+    # config-file in action.yml / renovate-reusable.yml), so it must resolve
+    # under RENOVATE_WORKSPACE, which is what is bind-mounted into the
+    # container as /srv/workspace - not /srv/action, which is this action's
+    # own directory (a sibling of run.sh, unrelated to the caller's checkout).
+    case "${CONFIG_FILE_HOST}" in
+    "${RENOVATE_WORKSPACE}"/*)
+        CONFIG_FILE_CONTAINER="/srv/workspace/${CONFIG_FILE_HOST#"${RENOVATE_WORKSPACE}"/}"
+        ;;
+    *)
+        echo "RENOVATE_CONFIG_FILE_OVERRIDE (${CONFIG_FILE_HOST}) must be an absolute path inside RENOVATE_WORKSPACE (${RENOVATE_WORKSPACE})" >&2
+        exit 1
+        ;;
+    esac
 elif [ -f "${RENOVATE_WORKSPACE}/renovate-global.json5" ]; then
     CONFIG_FILE_HOST="${RENOVATE_WORKSPACE}/renovate-global.json5"
     CONFIG_FILE_CONTAINER="/srv/workspace/renovate-global.json5"
