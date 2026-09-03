@@ -2,7 +2,7 @@
 # repository itself - functionally identical to
 # part/renovate/v1/templates/renovate-env.yml, the caller other repos copy
 # in as their own renovate-env.yml, except this one always calls the
-# *local* renovate-env-v1.yml (`uses: ./...`).
+# *local* renovate-env-v1.yml (`uses: $/...`).
 name: renovate-env
 
 on:
@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   renovate-env:
-    uses: ./.github/workflows/renovate-env-v1.yml
+    uses: $/.github/workflows/renovate-env-v1.yml
     permissions:
       pull-requests: write # exported RENOVATE_GITHUB_ACTIONS_TOKEN approves PRs locally
     with:

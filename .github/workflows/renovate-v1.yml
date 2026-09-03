@@ -63,7 +63,11 @@ jobs:
           path: .github/_gh-aucampia-shared
 
       - name: Run Renovate
-        uses: ./.github/_gh-aucampia-shared/part/renovate/v1/action
+        # Not `$/...`: that resolves against this workflow's own repository at
+        # the commit being run, which would pin the action to the same ref as
+        # the workflow and drop the shared-ref input. The checkout above exists
+        # precisely so callers can point the action at a different ref.
+        uses: ./.github/_gh-aucampia-shared/part/renovate/v1/action # zizmor: ignore[self-repository]
         with:
           repo-cache: ${{ inputs.repo-cache }}
           log-level: ${{ inputs.log-level }}

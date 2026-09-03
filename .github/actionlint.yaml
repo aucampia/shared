@@ -1,0 +1,10 @@
+# actionlint 1.7.12 predates GitHub's `$/` self-repository `uses:` syntax and
+# reports it as a malformed value (rhysd/actionlint#711, rhysd/actionlint#732).
+# zizmor's self-repository audit wants that syntax, so the two linters
+# disagree; the pattern below is narrowed to `$/` values so genuinely
+# malformed `uses:` values still fail. Drop this once actionlint ships
+# support.
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'reusable workflow call "\$/[^"]*" at "uses" is not following the format'
