@@ -9,7 +9,7 @@
 # has a stable name across runs regardless of that checkout path.
 services:
   renovate:
-    image: docker.io/renovate/renovate:latest@sha256:0b1544a1b85e5855bee4bf76b994b4faf66401e18cfba53aaa9b9bcba302f0c6
+    image: docker.io/renovate/renovate:latest@sha256:4912c3b8d0b09e157e6e8045fa7c45c3355b13ea717b0772fdca9eaa0fc422cf
     restart: "no"
     environment:
       # https://docs.renovatebot.com/config-overview/#logging-variables
